@@ -1,0 +1,172 @@
+======================================================================
+SECTION 1 — COLLECTION STATISTICS
+======================================================================
+Total documents          : 1400
+Total queries            : 225
+Total relevant judgments : 1612
+Avg relevant per query   : 7.16
+Avg doc length (tokens)  : 173.72
+Vocabulary size          : 7471
+Total tokens in coll.    : 243204
+
+======================================================================
+SECTION 2 — MODEL COMPARISON TABLE
+======================================================================
+Model                             MAP     P@10     P@20    R@100   NDCG@10
+----------------------------------------------------------------------
+BM25                           0.2750   0.2276   0.1531   0.7063    0.3647
+Jelinek-Mercer Language Model   0.2444   0.2013   0.1331   0.6721    0.3307
+TF-IDF                         0.2169   0.1756   0.1260   0.6701    0.2890
+Okapi TF                       0.2002   0.1769   0.1207   0.5987    0.2773
+Laplace Language Model         0.1070   0.0956   0.0716   0.4324    0.1572
+
+  ⭐ Best model by MAP: BM25  (MAP=0.2750)
+
+======================================================================
+SECTION 3 — PER-QUERY AVERAGE PRECISION (sample: queries 1-10)
+======================================================================
+QID        tfidf  okapi_tf      bm25   laplace        jm
+----------------------------------------------------------------------
+1         0.1479    0.1636    0.2081    0.1062    0.1774
+2         0.1608    0.1195    0.1485    0.0811    0.1298
+3         0.4787    0.3688    0.6176    0.0282    0.5537
+4         0.6667    0.5526    0.5909    0.1000    0.5833
+5         0.1875    0.1267    0.1975    0.0794    0.1436
+6         0.0952    0.1647    0.1404    0.0860    0.1403
+7         0.1462    0.1845    0.1967    0.1127    0.2708
+8         0.1748    0.1472    0.1522    0.1121    0.1312
+9         0.2407    0.8056    0.8056    0.2518    0.7000
+10        0.0329    0.0651    0.1072    0.0125    0.1043
+
+======================================================================
+SECTION 4 — TOP-10 RANKED DOCUMENTS FOR REPRESENTATIVE QUERIES
+======================================================================
+
+Top-10 comparison for Query 1  (✓ = relevant)
+Rank  tfidf             okapi_tf          bm25              laplace           jm                
+------------------------------------------------------------------------------------------------
+1     1268              184 ✓             184 ✓             1268              184 ✓             
+2     13 ✓              1268              486               14 ✓              486               
+3     486               486               13 ✓              792               1268              
+4     184 ✓             51 ✓              12 ✓              184 ✓             13 ✓              
+5     51 ✓              12 ✓              1268              51 ✓              12 ✓              
+6     792               13 ✓              51 ✓              1144              51 ✓              
+7     1144              14 ✓              875 ✓             1147              14 ✓              
+8     12 ✓              588               878               576               878               
+9     14 ✓              172               746               588               792               
+10    686               878               792               12 ✓              1361              
+
+
+Top-10 comparison for Query 5  (✓ = relevant)
+Rank  tfidf             okapi_tf          bm25              laplace           jm                
+------------------------------------------------------------------------------------------------
+1     329               103               103               329               103               
+2     103               1272              1032              540               1032              
+3     1066              540               1296 ✓            77                943               
+4     1296 ✓            172               943               1248              1296 ✓            
+5     14                1296 ✓            746               1147              828               
+6     540               746               1272              1201              746               
+7     401 ✓             28                650               625               625               
+8     172               1295              1379              1392              1272              
+9     1392              625               625               172               28                
+10    746               329               28                101               540               
+
+
+Top-10 comparison for Query 10  (✓ = relevant)
+Rank  tfidf             okapi_tf          bm25              laplace           jm                
+------------------------------------------------------------------------------------------------
+1     493               493               493               493               493               
+2     185               302 ✓             302 ✓             1313              302 ✓             
+3     1199              1214              949               1199              1286              
+4     691               1199              1199              576               691               
+5     302 ✓             1264              524               1214              1214              
+6     1214              691               1286              691               949               
+7     1319              1009              691               110               524               
+8     1274              1286              1010              329               1264              
+9     332               541               405 ✓             185               1199              
+10    949               332               1214              302 ✓             781               
+
+======================================================================
+SECTION 5 — MODEL DESCRIPTIONS & FORMULAS
+======================================================================
+
+1. TF-IDF
+   score(q,d) = Σ tf(t,d) × log(N / df(t))
+   - tf(t,d): raw count of term t in document d
+   - N: total documents; df(t): docs containing t
+   - Does NOT normalise for document length
+
+2. Okapi TF (length-normalised TF, no IDF)
+   tf_norm = tf / (tf + k1×(1 - b + b×dl/avgdl))
+   Parameters: k1=1.2, b=0.75
+   - Penalises longer documents via the b parameter
+   - No IDF component — does not penalise common terms
+
+3. BM25  ★
+   score = Σ IDF(t) × tf_norm(t,d) × qtf_weight
+   IDF(t)  = log((N - df + 0.5) / (df + 0.5))
+   tf_norm = tf×(k1+1) / (tf + k1×(1-b+b×dl/avgdl))
+   qtf_wt  = (k3+1)×qtf / (k3+qtf)
+   Parameters: k1=1.5, b=0.75, k3=500
+   - Combines IDF discrimination with length normalisation
+   - Saturation: extra TF gives diminishing returns
+
+4. Laplace Language Model (add-1 smoothing)
+   P(t|d) = (tf(t,d) + 1) / (dl + V)
+   score  = Σ log P(t|d)
+   V = vocabulary size (7471)
+   - Assigns non-zero probability to unseen terms
+   - Does not model collection-level importance
+
+5. Jelinek-Mercer Language Model
+   P(t|d) = (1-λ)×tf(t,d)/dl + λ×ctf(t)/C
+   score  = Σ log P(t|d)
+   λ=0.4, C = total tokens in collection (243204)
+   - Interpolates document and collection models
+   - λ controls smoothing strength
+
+======================================================================
+SECTION 6 — ANALYSIS (use this text in your report)
+======================================================================
+
+Best model:  BM25  (MAP=0.2750)
+Worst model: Laplace Language Model (MAP=0.1070)
+
+WHY BM25 TYPICALLY PERFORMS BEST ON CRANFIELD
+-----------------------------------------------
+The Cranfield collection consists of 1400 aeronautics abstracts
+with short, precise technical queries. BM25 excels here because:
+  • Robertson IDF strongly penalises high-frequency terms (e.g.
+    'flow', 'pressure') that appear in many docs but are not
+    discriminative for a specific query.
+  • Length normalisation (b=0.75) prevents longer abstracts from
+    unfairly dominating results simply by containing more tokens.
+  • TF saturation (k1=1.5) means a term appearing 10 times is not
+    ranked 10× higher than one appearing once — realistic for short
+    technical abstracts.
+
+WHY TF-IDF UNDERPERFORMS
+------------------------
+TF-IDF uses raw TF with no length normalisation. Longer documents
+accumulate higher raw TF values and thus score higher regardless
+of actual relevance. The Cranfield abstracts vary significantly in
+length, making this a meaningful disadvantage.
+
+WHY LANGUAGE MODELS DIFFER
+---------------------------
+Laplace LM assigns equal smoothing mass (1/V) to every unseen term,
+irrespective of how common that term is in the collection. This
+means a rare query term gets the same low probability as a common
+one — it cannot discriminate well.
+
+Jelinek-Mercer smooths toward the actual collection distribution,
+so rare terms in the collection remain unlikely even when absent
+from a document, while common terms get a higher floor probability.
+This is more principled and usually gives better MAP than Laplace.
+
+RANKING DIFFERENCES FOR INDIVIDUAL QUERIES
+-------------------------------------------
+The top-10 tables in Section 4 show that BM25 and JM retrieve
+largely the same highly-relevant documents, but differ in how they
+order borderline documents. TF-IDF often promotes longer documents
+into the top-10 that other models correctly rank lower.
